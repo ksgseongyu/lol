@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>원딜-서포터 상성 & 카운터 추천</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 30px auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+      margin-bottom: 16px;
+    }
+    img {
+      width: 40px;
+      height: 40px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .result {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .timing {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #444;
+    }
+    .rune {
+      margin-top: 8px;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 원딜-서포터 상성 & 카운터 추천 툴</h1>
+
+  <div class="card">
+    <h2>1. 우리 팀 챔피언 선택</h2>
+    <label for="adcSelect">내가 고른 원딜</label>
+    <select id="adcSelect"></select>
+
+    <label for="supportSelect">내가 고른 서포터</label>
+    <select id="supportSelect"></select>
+
+    <div id="adcResult" class="result"></div>
+    <div id="supportResult" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>2. 상대 원딜 카운터 추천</h2>
+    <label for="enemySelect">상대 원딜</label>
+    <select id="enemySelect"></select>
+
+    <div id="enemyResult" class="result"></div>
+    <div id="timingInfo" class="timing"></div>
+    <div id="runeSuggestion" class="rune"></div>
+  </div>
+
+  <script>
+    const champEngMap = {
+      "루시안": "Lucian", "드레이븐": "Draven", "자야": "Xayah", "카이사": "KaiSa", "징크스": "Jinx",
+      "이즈리얼": "Ezreal", "진": "Jhin", "트리스타나": "Tristana", "애쉬": "Ashe", "칼리스타": "Kalista",
+      "미스 포춘": "MissFortune", "베인": "Vayne", "시비르": "Sivir", "코그모": "KogMaw", "사미라": "Samira", "케이틀린": "Caitlyn", 
+      "닐라": "Nilah", "아펠리오스": "Aphelios", "세나": "Senna", "스웨인": "Swain",
+      "노틸러스": "Nautilus", "레오나": "Leona", "나미": "Nami", "라칸": "Rakan", "쓰레쉬": "Thresh",
+      "밀리오": "Milio", "럭스": "Lux", "유미": "Yuumi", "브랜드": "Brand", "잔나": "Janna",
+      "모르가나": "Morgana", "파이크": "Pyke", "블리츠크랭크": "Blitzcrank", "바드": "Bard", "자이라": "Zyra",
+      "브라움": "Braum"
+    };
+
+    const adcChampions = Object.keys(champEngMap).filter(name =>
+      ["루시안", "드레이븐", "자야", "카이사", "징크스", "이즈리얼", "진", "트리스타나", "애쉬", "칼리스타",
+       "미스 포춘", "베인", "시비르", "코그모", "케이틀린", "사미라", "닐라", "아펠리오스", "세나", "스웨인"].includes(name)
+    );
+
+    const supportChampions = Object.keys(champEngMap).filter(name => !adcChampions.includes(name));
+
+    const synergy = {
+      "루시안": ["노틸러스", "나미", "브라움"],
+      "드레이븐": ["레오나", "쓰레쉬"],
+      "자야": ["라칸", "레오나"],
+      "카이사": ["노틸러스", "쓰레쉬"],
+      "징크스": ["밀리오", "나미"],
+      "이즈리얼": ["유미", "나미"],
+      "케이틀린": ["유미", "럭스", "모르가나", "브랜드", "자이라"],
+      "진": ["쓰레쉬", "럭스"],
+      "트리스타나": ["레오나", "브라움"],
+      "애쉬": ["럭스", "모르가나"],
+      "칼리스타": ["레오나", "노틸러스"],
+      "미스 포춘": ["브랜드", "럭스"],
+      "베인": ["모르가나", "브라움"],
+      "시비르": ["잔나", "모르가나"],
+      "코그모": ["잔나"],
+      "사미라": ["노틸러스", "레오나"],
+      "닐라": ["밀리오", "유미"],
+      "아펠리오스": ["쓰레쉬", "브라움"],
+      "세나": ["모르가나"],
+      "스웨인": ["파이크", "노틸러스"]
+    };
+
+    const counterAdc = {
+      "루시안": ["자야", "이즈리얼"],
+      "드레이븐": ["자야", "애쉬"],
+      "자야": ["카이사", "진"],
+      "카이사": ["루시안", "칼리스타"],
+      "케이틀린": ["이즈리얼", "징크스", "진"],
+      "징크스": ["드레이븐", "루시안"],
+      "이즈리얼": ["카이사", "자야"],
+      "진": ["루시안", "드레이븐"],
+      "트리스타나": ["자야", "이즈리얼"],
+      "애쉬": ["루시안", "드레이븐"],
+      "칼리스타": ["이즈리얼", "자야"],
+      "미스 포춘": ["이즈리얼", "카이사"],
+      "베인": ["루시안", "자야"],
+      "시비르": ["드레이븐", "카이사"],
+      "코그모": ["자야", "루시안"],
+      "사미라": ["자야", "징크스"],
+      "닐라": ["루시안", "카이사"],
+      "아펠리오스": ["이즈리얼", "자야"],
+      "세나": ["루시안", "드레이븐"],
+      "스웨인": ["이즈리얼", "자야"]
+    };
+
+    const powerTiming = {
+      "루시안": "초반 2~6레벨 라인전", "드레이븐": "초반 라인전과 첫 킬 타이밍", "자야": "중반 한타",
+      "케이틀린": "초반 라인전 우세",
+      "카이사": "중~후반 전투 진입", "징크스": "후반 풀템 한타", "이즈리얼": "중반 포킹",
+      "진": "중후반 스킬 견제", "트리스타나": "초중반 라인 푸시 및 타워 압박", "애쉬": "라인전 지속 견제 및 궁 활용",
+      "칼리스타": "초반 싸움과 로밍 호응", "미스 포춘": "궁극기를 활용한 중후반 이니시", "베인": "후반 1:1 및 팀파이트",
+      "시비르": "라인 클리어 및 궁으로 이니시", "코그모": "후반 딜링 머신", "사미라": "중반 한타 진입",
+      "닐라": "근접 전투와 팀파이트", "아펠리오스": "중후반 무기 활용 폭발력", "세나": "지속 견제와 힐링", "스웨인": "라인전 견제 + 한타 광역딜"
+    };
+
+    const runeSuggestions = {
+      "루시안": "정밀: 집중 공격 + 지배: 돌발 일격", "드레이븐": "정밀: 정복자 + 지배: 피의 맛",
+      "자야": "치명적 속도 + 영감: 비스킷 배달", "카이사": "치명적 속도 또는 기민한 발놀림 + 영감: 마법의 신발",
+      "징크스": "치명적 속도 + 영감: 비스킷 배달", "이즈리얼": "집중 공격 또는 감전 + 마법: 마나순환 팔찌",
+      "진": "집중 공격 또는 기민한 발놀림 + 마법: 절대 집중", "트리스타나": "정밀: 집중 공격 + 지배: 돌발 일격",
+      "애쉬": "치명적 속도 + 영감: 비스킷 배달", "칼리스타": "기민한 발놀림 + 지배: 피의 맛",
+      "미스 포춘": "치명적 속도 또는 선제공격 + 마법: 마나순환 팔찌", "베인": "치명적 속도 + 지배: 돌발 일격",
+      "시비르": "치명적 속도 + 영감: 비스킷 배달", "코그모": "치명적 속도 + 영감: 비스킷 배달",
+      "사미라": "정복자 + 지배: 피의 맛", "닐라": "정밀: 정복자 + 지배: 돌발 일격",
+      "아펠리오스": "치명적 속도 + 영감: 마법의 신발", "세나": "기민한 발놀림 + 영감: 비스킷 배달", "스웨인": "마법: 콩콩이 소환 + 지배: 피의 맛"
+    };
+
+    function getImage(champ) {
+      const eng = champEngMap[champ];
+      if (!eng) return '';
+      return `<img src="https://ddragon.leagueoflegends.com/cdn/14.12.1/img/champion/${eng}.png" alt="${champ}" onerror="this.style.display='none'">`;
+    }
+
+    function populateSelect(id, list) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '<option value="">-- 선택하세요 --</option>';
+      list.forEach(champ => {
+        const opt = document.createElement('option');
+        opt.value = champ;
+        opt.textContent = champ;
+        sel.appendChild(opt);
+      });
+    }
+
+    window.onload = () => {
+      populateSelect("adcSelect", adcChampions);
+      populateSelect("supportSelect", supportChampions);
+      populateSelect("enemySelect", adcChampions);
+
+      document.getElementById("adcSelect").addEventListener("change", updateDisplay);
+      document.getElementById("supportSelect").addEventListener("change", updateDisplay);
+      document.getElementById("enemySelect").addEventListener("change", updateDisplay);
+    };
+
+    function updateDisplay() {
+      const adc = document.getElementById("adcSelect").value;
+      const support = document.getElementById("supportSelect").value;
+      const enemy = document.getElementById("enemySelect").value;
+
+      document.getElementById("adcResult").innerHTML =
+        adc ? `${getImage(adc)}<strong>${adc}</strong>에게 잘 맞는 서포터: ${synergy[adc]?.join(', ') || '데이터 없음'}` : '';
+
+      document.getElementById("supportResult").innerHTML =
+        support ? `${getImage(support)}<strong>${support}</strong>와 시너지가 좋은 원딜: ${Object.keys(synergy).filter(adc => synergy[adc].includes(support)).join(', ') || '데이터 없음'}` : '';
+
+      document.getElementById("enemyResult").innerHTML =
+        enemy ? `${getImage(enemy)}<strong>${enemy}</strong>을(를) 상대할 때 추천 원딜: ${counterAdc[enemy]?.join(', ') || '데이터 없음'}` : '';
+
+      const timingBox = document.getElementById("timingInfo");
+      const runeBox = document.getElementById("runeSuggestion");
+
+      if (adc && enemy) {
+        timingBox.innerHTML = `<strong>${adc}</strong>의 타이밍 우위: ${powerTiming[adc] || "정보 없음"}`;
+        runeBox.innerHTML = `추천 룬: <strong>${runeSuggestions[adc] || "정보 없음"}</strong>`;
+      } else {
+        timingBox.innerHTML = '';
+        runeBox.innerHTML = '';
+      }
+    }
+  </script>
+</body>
+</html>
